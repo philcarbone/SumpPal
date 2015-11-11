@@ -28,6 +28,7 @@ namespace SumpPal
 
         private GpioController gpio;
         private GpioPin pin4;
+        private GpioPin pin5;
 
         #endregion Private Fields
 
@@ -62,13 +63,32 @@ namespace SumpPal
 
         #region Public Constructors
 
+        private GpioPinValue oldValue = GpioPinValue.Low;
+
         public MainPage()
         {
             this.InitializeComponent();
 
             gpio = GpioController.GetDefault();
             pin4 = gpio.OpenPin(4);
+            pin5 = gpio.OpenPin(5);
             pin4.SetDriveMode(GpioPinDriveMode.Output);
+            pin5.SetDriveMode(GpioPinDriveMode.InputPullDown);
+            pin5.ValueChanged += Pin5_ValueChanged;
+        }
+
+        private async void Pin5_ValueChanged(GpioPin sender, GpioPinValueChangedEventArgs args)
+        {
+            var value = sender.Read();
+            if (value != oldValue)
+            {
+                oldValue = value;
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+                 {
+                     SumpIsOn = value == GpioPinValue.High;
+                     await Task.Delay(TimeSpan.FromSeconds(1));
+                 });
+            }
         }
 
         #endregion Public Constructors
@@ -77,14 +97,15 @@ namespace SumpPal
 
         public async Task Execute()
         {
-            while (true)
-            {
-                SumpIsOn = true;
-                await Task.Delay(TimeSpan.FromSeconds(1));
+            //while (true)
+            //{
+            //    //SumpIsOn = true;
+            //    //if(pin5.ValueChanged)
+            //    //await Task.Delay(TimeSpan.FromSeconds(1));
 
-                SumpIsOn = false;
-                await Task.Delay(TimeSpan.FromMilliseconds(600));
-            }
+            //    //SumpIsOn = false;
+            //    //await Task.Delay(TimeSpan.FromMilliseconds(600));
+            //}
         }
 
         #endregion Public Methods
